@@ -1,0 +1,923 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>FWPC Attendance</title>
+  <meta name="theme-color" content="#4e54c8">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <style>
+    :root {
+      --bg: #f3f5fa;
+      --card-bg: #ffffff;
+      --primary: #5c67f2;
+      --primary-dark: #4e57d4;
+      --subtotal-color: #4b58e7;
+      --light-btn: #e5ecf9;
+      --text-dark: #1e2640;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+      --danger: #ef4444;
+      --success: #10b981;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text-dark);
+      padding-bottom: 90px;
+    }
+
+    .header {
+      padding: 24px 20px 12px;
+    }
+
+    .header h1 {
+      font-size: 26px;
+      font-weight: 800;
+      color: var(--text-dark);
+    }
+
+    .header p {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    .container {
+      padding: 0 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border-radius: 14px;
+      padding: 16px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+      border: 1px solid var(--border);
+    }
+
+    .card-title {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      color: var(--text-dark);
+    }
+
+    .counter-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 0;
+    }
+
+    .counter-label {
+      font-size: 15px;
+      font-weight: 500;
+      color: #334155;
+    }
+
+    .counter-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-step {
+      width: 42px;
+      height: 38px;
+      border: none;
+      border-radius: 8px;
+      font-size: 18px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .btn-minus {
+      background-color: var(--light-btn);
+      color: #475569;
+    }
+
+    .btn-plus {
+      background-color: var(--primary);
+      color: #ffffff;
+    }
+
+    .counter-value-box {
+      width: 58px;
+      height: 38px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      font-weight: 700;
+      background: #ffffff;
+      cursor: pointer;
+    }
+
+    .subtotal-divider {
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid #f1f5f9;
+      text-align: center;
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--subtotal-color);
+    }
+
+    .btn-banner {
+      width: 100%;
+      background: var(--primary);
+      color: #ffffff;
+      border: none;
+      border-radius: 12px;
+      padding: 16px;
+      font-size: 17px;
+      font-weight: 700;
+      text-align: center;
+      box-shadow: 0 3px 8px rgba(92, 103, 242, 0.25);
+    }
+
+    .btn-save-week {
+      background: #6366f1;
+      cursor: pointer;
+    }
+
+    /* Bottom Navigation */
+    .bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 64px;
+      background: #ffffff;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      z-index: 100;
+    }
+
+    .nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .nav-item.active {
+      color: var(--primary);
+    }
+
+    .nav-item svg {
+      width: 22px;
+      height: 22px;
+      fill: currentColor;
+    }
+
+    /* Modals */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.5);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      z-index: 200;
+    }
+
+    .modal-content {
+      background: #ffffff;
+      border-radius: 18px;
+      width: 100%;
+      max-width: 360px;
+      padding: 24px 20px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+      position: relative;
+      max-height: 88vh;
+      overflow-y: auto;
+    }
+
+    .modal-title {
+      font-size: 19px;
+      font-weight: 700;
+      text-align: center;
+      margin-bottom: 6px;
+    }
+
+    .modal-subtitle {
+      font-size: 13px;
+      color: var(--text-muted);
+      text-align: center;
+      margin-bottom: 16px;
+    }
+
+    .modal-input {
+      width: 100%;
+      height: 48px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 0 14px;
+      font-size: 17px;
+      font-weight: 600;
+      margin-bottom: 16px;
+      outline: none;
+      text-align: center;
+    }
+
+    .modal-buttons-grid {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .modal-buttons-grid button {
+      flex: 1;
+      height: 42px;
+      border: none;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    .btn-modal-cancel {
+      flex: 1;
+      height: 44px;
+      background: var(--light-btn);
+      color: #334155;
+      border: none;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .btn-modal-save {
+      flex: 1;
+      height: 44px;
+      background: var(--primary);
+      color: #ffffff;
+      border: none;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    /* History Cards */
+    .history-card {
+      background: #ffffff;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      padding: 16px;
+      margin-bottom: 14px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+    }
+
+    .history-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+    }
+
+    .history-card-header h3 {
+      font-size: 17px;
+      font-weight: 700;
+    }
+
+    .history-chevron {
+      color: var(--text-muted);
+      font-size: 18px;
+      font-weight: bold;
+    }
+
+    .history-lines {
+      margin: 10px 0 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      font-size: 14px;
+      color: #334155;
+      cursor: pointer;
+    }
+
+    .history-total-line {
+      font-weight: 700;
+      color: var(--primary);
+      margin-top: 4px;
+    }
+
+    /* 3 Button Row for History Card */
+    .history-btn-row {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn-history-outline {
+      height: 38px;
+      border-radius: 8px;
+      background: #ffffff;
+      border: 1px solid;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: 600;
+    }
+
+    .btn-history-export {
+      flex: 1.4;
+      border-color: var(--success);
+      color: var(--success);
+    }
+
+    .btn-rename {
+      flex: 1;
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+
+    .btn-delete {
+      flex: 1;
+      border-color: var(--danger);
+      color: var(--danger);
+    }
+
+    /* Detail Modal Specifics */
+    .detail-section-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--primary);
+      margin: 12px 0 4px;
+    }
+
+    .detail-item {
+      font-size: 13.5px;
+      color: #334155;
+      padding: 2px 0;
+    }
+
+    .detail-subtotal {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--subtotal-color);
+      margin: 3px 0 8px;
+    }
+
+    .btn-export-email {
+      margin-top: 12px;
+      width: 100%;
+      background: var(--success);
+      color: #ffffff;
+      border: none;
+      border-radius: 10px;
+      padding: 13px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .btn-close-x {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      background: none;
+      border: none;
+      font-size: 20px;
+      cursor: pointer;
+      color: #64748b;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Screen 1: Attendance Tracker -->
+  <div id="screen-attendance">
+    <div class="header">
+      <h1>FWPC Attendance</h1>
+      <p>Track attendance across all areas</p>
+    </div>
+
+    <div class="container">
+      <!-- Sanctuary Card -->
+      <div class="card">
+        <div class="card-title">Sanctuary</div>
+        <div id="group-sanctuary"></div>
+        <div class="subtotal-divider" id="subtotal-sanctuary">Total Sanctuary: 0</div>
+      </div>
+
+      <!-- KIWI Card -->
+      <div class="card">
+        <div class="card-title">KIWI</div>
+        <div id="group-kiwi"></div>
+      </div>
+
+      <!-- Nursery Card (5 Rooms + Subtotal) -->
+      <div class="card">
+        <div class="card-title">Nursery</div>
+        <div id="group-nursery"></div>
+        <div class="subtotal-divider" id="subtotal-nursery">Total Nursery: 0</div>
+      </div>
+
+      <!-- Misc Areas Card -->
+      <div class="card">
+        <div class="card-title">Miscellaneous Areas</div>
+        <div id="group-misc"></div>
+        <div class="subtotal-divider" id="subtotal-misc">Total Misc: 0</div>
+      </div>
+
+      <!-- Online Attendance Card (Excluded from total) -->
+      <div class="card">
+        <div class="card-title">Online Attendance</div>
+        <div id="group-online"></div>
+        <div class="subtotal-divider" id="subtotal-online">Total Facebook: 0</div>
+      </div>
+
+      <!-- Bottom Grand Totals & Actions -->
+      <div class="btn-banner" id="banner-total">Total Attendance: 0</div>
+      <button class="btn-banner btn-save-week" onclick="openSaveModal()">💾 Save This Week</button>
+    </div>
+  </div>
+
+  <!-- Screen 2: History -->
+  <div id="screen-history" style="display: none;">
+    <div class="header">
+      <h1>Attendance History</h1>
+      <p>View saved weekly records</p>
+    </div>
+    <div class="container" id="history-container">
+      <!-- Dynamic weekly records render here -->
+    </div>
+  </div>
+
+  <!-- Screen 3: Settings -->
+  <div id="screen-settings" style="display: none;">
+    <div class="header">
+      <h1>Settings</h1>
+      <p>Configure export & email destinations</p>
+    </div>
+    <div class="container">
+      <div class="card">
+        <div class="card-title">Recipient Email Addresses</div>
+        <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 12px;">
+          Enter email addresses separated by commas. Saved only on this phone.
+        </p>
+        <input type="text" id="setting-emails" class="modal-input" style="text-align: left;" placeholder="office@church.org, pastor@church.org">
+        <button class="btn-banner" style="padding: 12px;" onclick="saveEmailSettings()">Save Addresses</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom Navigation -->
+  <div class="bottom-nav">
+    <button class="nav-item active" id="nav-att" onclick="switchScreen('attendance')">
+      <svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+      Attendance
+    </button>
+    <button class="nav-item" id="nav-hist" onclick="switchScreen('history')">
+      <svg viewBox="0 0 24 24"><path d="M13 3a9 9 0 0 0-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42A8.954 8.954 0 0 0 13 21a9 9 0 0 0 0-18zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z"/></svg>
+      History
+    </button>
+    <button class="nav-item" id="nav-sett" onclick="switchScreen('settings')">
+      <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+      Settings
+    </button>
+  </div>
+
+  <!-- Modal 1: Quick Edit (+1/-1/+10/-10) -->
+  <div class="modal-overlay" id="modal-edit">
+    <div class="modal-content">
+      <div class="modal-title" id="edit-modal-title">Edit Item</div>
+      <input type="number" id="edit-modal-input" class="modal-input" min="0">
+      <div class="modal-buttons-grid">
+        <button class="btn-minus" onclick="nudgeEditModal(-10)">-10</button>
+        <button class="btn-minus" onclick="nudgeEditModal(-1)">-1</button>
+        <button class="btn-plus" onclick="nudgeEditModal(1)">+1</button>
+        <button class="btn-plus" onclick="nudgeEditModal(10)">+10</button>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-modal-cancel" onclick="closeModal('modal-edit')">Cancel</button>
+        <button class="btn-modal-save" onclick="saveEditModal()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 2: Save This Week -->
+  <div class="modal-overlay" id="modal-save">
+    <div class="modal-content">
+      <div class="modal-title">Save This Week</div>
+      <div class="modal-subtitle">Select date for this attendance record:</div>
+      <input type="date" id="save-date-input" class="modal-input">
+      <div class="modal-actions">
+        <button class="btn-modal-cancel" onclick="closeModal('modal-save')">Cancel</button>
+        <button class="btn-modal-save" onclick="confirmSaveWeek()">Save Week</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 3: Rename Record -->
+  <div class="modal-overlay" id="modal-rename">
+    <div class="modal-content">
+      <div class="modal-title">Rename Record</div>
+      <div class="modal-subtitle">Enter a new name for this week</div>
+      <input type="text" id="rename-input" class="modal-input">
+      <div class="modal-actions">
+        <button class="btn-modal-cancel" onclick="closeModal('modal-rename')">Cancel</button>
+        <button class="btn-modal-save" onclick="confirmRename()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 4: Detailed Breakdown & Export -->
+  <div class="modal-overlay" id="modal-detail">
+    <div class="modal-content">
+      <button class="btn-close-x" onclick="closeModal('modal-detail')">✕</button>
+      <div class="modal-title" id="detail-title">Week of ...</div>
+      
+      <div id="detail-body" style="margin: 14px 0;"></div>
+
+      <div class="btn-banner" id="detail-total-banner" style="padding: 12px; font-size: 16px;">Total Attendance: 0</div>
+      <button class="btn-export-email" onclick="exportWeekCSV(selectedRecordId)">✉ Export & Email CSV</button>
+    </div>
+  </div>
+
+  <script>
+    // App Data Model
+    const fieldsConfig = {
+      sanctuary: ["Pew L", "Pew LC", "Pew RC", "Pew R", "Chair L", "Chair LC", "Chair RC", "Chair R", "Back & Other"],
+      kiwi: ["KIWI"],
+      nursery: ["Desk/Hall", "Room 110", "Room 111", "Room 112", "Room 113"],
+      misc: ["Lecture", "Halls & Misc"],
+      online: ["Facebook"]
+    };
+
+    // Application State
+    let counts = {};
+    let currentEditKey = null;
+    let selectedRecordId = null;
+
+    // Initialize counts
+    function initCounts() {
+      Object.keys(fieldsConfig).forEach(grp => {
+        fieldsConfig[grp].forEach(field => {
+          counts[field] = 0;
+        });
+      });
+    }
+
+    // Render UI Counters
+    function renderSection(containerId, fieldArray) {
+      const el = document.getElementById(containerId);
+      el.innerHTML = "";
+      fieldArray.forEach(name => {
+        const row = document.createElement("div");
+        row.className = "counter-row";
+        row.innerHTML = `
+          <span class="counter-label">${name}</span>
+          <div class="counter-controls">
+            <button class="btn-step btn-minus" onclick="stepCount('${name}', -1)">–</button>
+            <div class="counter-value-box" onclick="openEditModal('${name}')" id="val-${name}">0</div>
+            <button class="btn-step btn-plus" onclick="stepCount('${name}', 1)">+</button>
+          </div>
+        `;
+        el.appendChild(row);
+      });
+    }
+
+    function stepCount(key, delta) {
+      counts[key] = Math.max(0, (counts[key] || 0) + delta);
+      updateDisplay();
+    }
+
+    function updateDisplay() {
+      // Refresh count boxes
+      for (const [key, val] of Object.entries(counts)) {
+        const box = document.getElementById(`val-${key}`);
+        if (box) box.textContent = val;
+      }
+
+      // Calculations
+      const sum = (arr) => arr.reduce((acc, f) => acc + (counts[f] || 0), 0);
+      const totalSanctuary = sum(fieldsConfig.sanctuary);
+      const totalKiwi = sum(fieldsConfig.kiwi);
+      const totalNursery = sum(fieldsConfig.nursery);
+      const totalMisc = sum(fieldsConfig.misc);
+      const totalOnline = sum(fieldsConfig.online);
+
+      // Subtotals
+      document.getElementById("subtotal-sanctuary").textContent = `Total Sanctuary: ${totalSanctuary}`;
+      document.getElementById("subtotal-nursery").textContent = `Total Nursery: ${totalNursery}`;
+      document.getElementById("subtotal-misc").textContent = `Total Misc: ${totalMisc}`;
+      document.getElementById("subtotal-online").textContent = `Total Facebook: ${totalOnline}`;
+
+      // Grand Physical Total
+      const grandTotal = totalSanctuary + totalKiwi + totalNursery + totalMisc;
+      document.getElementById("banner-total").textContent = `Total Attendance: ${grandTotal}`;
+    }
+
+    // Modal Operations
+    function openModal(id) { document.getElementById(id).style.display = "flex"; }
+    function closeModal(id) { document.getElementById(id).style.display = "none"; }
+
+    function openEditModal(key) {
+      currentEditKey = key;
+      document.getElementById("edit-modal-title").textContent = `Edit ${key}`;
+      document.getElementById("edit-modal-input").value = counts[key] || 0;
+      openModal("modal-edit");
+    }
+
+    function nudgeEditModal(delta) {
+      const input = document.getElementById("edit-modal-input");
+      const current = parseInt(input.value) || 0;
+      input.value = Math.max(0, current + delta);
+    }
+
+    function saveEditModal() {
+      const val = parseInt(document.getElementById("edit-modal-input").value) || 0;
+      counts[currentEditKey] = Math.max(0, val);
+      updateDisplay();
+      closeModal("modal-edit");
+    }
+
+    function openSaveModal() {
+      const today = new Date().toISOString().split("T")[0];
+      document.getElementById("save-date-input").value = today;
+      openModal("modal-save");
+    }
+
+    // Persistent LocalStorage Layer
+    function getStoredRecords() {
+      return JSON.parse(localStorage.getItem("fwpc_history") || "[]");
+    }
+
+    function saveStoredRecords(records) {
+      localStorage.setItem("fwpc_history", JSON.stringify(records));
+    }
+
+    function confirmSaveWeek() {
+      const dateVal = document.getElementById("save-date-input").value || new Date().toISOString().split("T")[0];
+      const records = getStoredRecords();
+
+      const sum = (arr) => arr.reduce((acc, f) => acc + (counts[f] || 0), 0);
+      const totalSanctuary = sum(fieldsConfig.sanctuary);
+      const totalKiwi = sum(fieldsConfig.kiwi);
+      const totalNursery = sum(fieldsConfig.nursery);
+      const totalMisc = sum(fieldsConfig.misc);
+      const totalOnline = sum(fieldsConfig.online);
+      const grandTotal = totalSanctuary + totalKiwi + totalNursery + totalMisc;
+
+      const newRecord = {
+        id: "rec_" + Date.now(),
+        date: dateVal,
+        title: dateVal,
+        timestamp: Date.now(),
+        counts: { ...counts },
+        totals: {
+          sanctuary: totalSanctuary,
+          kiwi: totalKiwi,
+          nursery: totalNursery,
+          misc: totalMisc,
+          online: totalOnline,
+          grandTotal: grandTotal
+        }
+      };
+
+      records.unshift(newRecord);
+      saveStoredRecords(records);
+      closeModal("modal-save");
+      alert("Week saved successfully! Counters remain filled for adjustments.");
+    }
+
+    // History Screen (with 3 buttons)
+    function renderHistory() {
+      const container = document.getElementById("history-container");
+      const records = getStoredRecords();
+      container.innerHTML = "";
+
+      if (records.length === 0) {
+        container.innerHTML = `<p style="text-align: center; color: var(--text-muted); margin-top: 40px;">No saved records yet.</p>`;
+        return;
+      }
+
+      records.forEach(rec => {
+        const card = document.createElement("div");
+        card.className = "history-card";
+        card.innerHTML = `
+          <div class="history-card-header" onclick="openDetailView('${rec.id}')">
+            <h3>${rec.title}</h3>
+            <span class="history-chevron">›</span>
+          </div>
+          <div class="history-lines" onclick="openDetailView('${rec.id}')">
+            <div>Sanctuary: ${rec.totals.sanctuary}</div>
+            <div>KIWI: ${rec.totals.kiwi}</div>
+            <div>Nursery: ${rec.totals.nursery}</div>
+            <div>Misc: ${rec.totals.misc}</div>
+            <div>Facebook: ${rec.totals.online}</div>
+            <div class="history-total-line">Total: ${rec.totals.grandTotal}</div>
+          </div>
+          <div class="history-btn-row">
+            <button class="btn-history-outline btn-history-export" onclick="exportWeekCSV('${rec.id}')">Export</button>
+            <button class="btn-history-outline btn-rename" onclick="openRenameModal('${rec.id}')">✏</button>
+            <button class="btn-history-outline btn-delete" onclick="deleteRecord('${rec.id}')">🗑</button>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function openRenameModal(id) {
+      selectedRecordId = id;
+      const records = getStoredRecords();
+      const rec = records.find(r => r.id === id);
+      if (!rec) return;
+      document.getElementById("rename-input").value = rec.title;
+      openModal("modal-rename");
+    }
+
+    function confirmRename() {
+      const newTitle = document.getElementById("rename-input").value.trim();
+      if (!newTitle) return;
+      const records = getStoredRecords();
+      const rec = records.find(r => r.id === selectedRecordId);
+      if (rec) {
+        rec.title = newTitle;
+        saveStoredRecords(records);
+        renderHistory();
+      }
+      closeModal("modal-rename");
+    }
+
+    function deleteRecord(id) {
+      if (confirm("Are you sure you want to delete this weekly record?")) {
+        let records = getStoredRecords();
+        records = records.filter(r => r.id !== id);
+        saveStoredRecords(records);
+        renderHistory();
+      }
+    }
+
+    // Detail Breakdown View
+    function openDetailView(id) {
+      selectedRecordId = id;
+      const records = getStoredRecords();
+      const rec = records.find(r => r.id === id);
+      if (!rec) return;
+
+      document.getElementById("detail-title").textContent = `Week of ${rec.title}`;
+      const body = document.getElementById("detail-body");
+      
+      let html = `<div class="detail-section-title">Sanctuary</div>`;
+      fieldsConfig.sanctuary.forEach(f => {
+        html += `<div class="detail-item">${f}: ${rec.counts[f] || 0}</div>`;
+      });
+      html += `<div class="detail-subtotal">Total Sanctuary: ${rec.totals.sanctuary}</div>`;
+
+      html += `<div class="detail-section-title">KIWI</div><div class="detail-item">KIWI: ${rec.totals.kiwi}</div>`;
+
+      html += `<div class="detail-section-title">Nursery</div>`;
+      fieldsConfig.nursery.forEach(f => {
+        html += `<div class="detail-item">${f}: ${rec.counts[f] || 0}</div>`;
+      });
+      html += `<div class="detail-subtotal">Total Nursery: ${rec.totals.nursery}</div>`;
+
+      html += `<div class="detail-section-title">Miscellaneous</div>`;
+      fieldsConfig.misc.forEach(f => {
+        html += `<div class="detail-item">${f}: ${rec.counts[f] || 0}</div>`;
+      });
+      html += `<div class="detail-subtotal">Total Misc: ${rec.totals.misc}</div>`;
+
+      html += `<div class="detail-section-title">Online</div><div class="detail-item">Facebook: ${rec.totals.online}</div><div class="detail-subtotal">Total Facebook: ${rec.totals.online}</div>`;
+
+      body.innerHTML = html;
+      document.getElementById("detail-total-banner").textContent = `Total Attendance: ${rec.totals.grandTotal}`;
+      openModal("modal-detail");
+    }
+
+    // CSV Generator & Email Intent (Works from History card or Detail modal)
+    function exportWeekCSV(recId) {
+      const targetId = recId || selectedRecordId;
+      const records = getStoredRecords();
+      const rec = records.find(r => r.id === targetId);
+      if (!rec) return;
+
+      const headers = ["Week", "Sanctuary", "KIWI", "Desk_Hall", "Room_110", "Room_111", "Room_112", "Room_113", "Total_Nursery", "Total_Misc", "Total_Attendance", "Online_Facebook"];
+      const row = [
+        `"${rec.title}"`,
+        rec.totals.sanctuary,
+        rec.totals.kiwi,
+        rec.counts["Desk/Hall"] || 0,
+        rec.counts["Room 110"] || 0,
+        rec.counts["Room 111"] || 0,
+        rec.counts["Room 112"] || 0,
+        rec.counts["Room 113"] || 0,
+        rec.totals.nursery,
+        rec.totals.misc,
+        rec.totals.grandTotal,
+        rec.totals.online
+      ];
+
+      const csvContent = headers.join(",") + "\n" + row.join(",") + "\n";
+      const emails = localStorage.getItem("fwpc_emails") || "";
+      const subject = encodeURIComponent(`FWPC Attendance Report - Week of ${rec.title}`);
+      const body = encodeURIComponent(
+        `Here is the weekly attendance breakdown for ${rec.title}:\n\n` +
+        `Sanctuary: ${rec.totals.sanctuary}\n` +
+        `KIWI: ${rec.totals.kiwi}\n` +
+        `Nursery (Desk/Hall): ${rec.counts["Desk/Hall"] || 0}\n` +
+        `Nursery (Room 110): ${rec.counts["Room 110"] || 0}\n` +
+        `Nursery (Room 111): ${rec.counts["Room 111"] || 0}\n` +
+        `Nursery (Room 112): ${rec.counts["Room 112"] || 0}\n` +
+        `Nursery (Room 113): ${rec.counts["Room 113"] || 0}\n` +
+        `Total Nursery: ${rec.totals.nursery}\n` +
+        `Total Misc: ${rec.totals.misc}\n` +
+        `Total Attendance: ${rec.totals.grandTotal}\n` +
+        `Online (Facebook): ${rec.totals.online}\n\n` +
+        `Raw CSV Data:\n${csvContent}`
+      );
+
+      // Trigger download of the .csv file
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const downloadLink = document.createElement("a");
+      downloadLink.href = url;
+      downloadLink.setAttribute("download", `Attendance_${rec.title.replace(/[^a-zA-Z0-9]/g, "_")}.csv`);
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      document.body.removeChild(downloadLink);
+
+      // Launch email intent
+      setTimeout(() => {
+        window.location.href = `mailto:${emails}?subject=${subject}&body=${body}`;
+      }, 400);
+    }
+
+    // Settings screen
+    function saveEmailSettings() {
+      const input = document.getElementById("setting-emails").value.trim();
+      localStorage.setItem("fwpc_emails", input);
+      alert("Email preferences saved to this device!");
+    }
+
+    function switchScreen(screen) {
+      document.getElementById("screen-attendance").style.display = screen === "attendance" ? "block" : "none";
+      document.getElementById("screen-history").style.display = screen === "history" ? "block" : "none";
+      document.getElementById("screen-settings").style.display = screen === "settings" ? "block" : "none";
+
+      document.getElementById("nav-att").classList.toggle("active", screen === "attendance");
+      document.getElementById("nav-hist").classList.toggle("active", screen === "history");
+      document.getElementById("nav-sett").classList.toggle("active", screen === "settings");
+
+      if (screen === "history") renderHistory();
+      if (screen === "settings") {
+        document.getElementById("setting-emails").value = localStorage.getItem("fwpc_emails") || "";
+      }
+      window.scrollTo(0, 0);
+    }
+
+    // Initialization
+    window.addEventListener("DOMContentLoaded", () => {
+      initCounts();
+      renderSection("group-sanctuary", fieldsConfig.sanctuary);
+      renderSection("group-kiwi", fieldsConfig.kiwi);
+      renderSection("group-nursery", fieldsConfig.nursery);
+      renderSection("group-misc", fieldsConfig.misc);
+      renderSection("group-online", fieldsConfig.online);
+      updateDisplay();
+    });
+  </script>
+</body>
+</html>
