@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>FWPC Attendance</title>
   <meta name="theme-color" content="#4e54c8">
-    <link rel="manifest" href="manifest.json">
+  <link rel="manifest" href="manifest.json">
   <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('sw.js');
@@ -157,6 +157,11 @@
       font-weight: 700;
       text-align: center;
       box-shadow: 0 3px 8px rgba(92, 103, 242, 0.25);
+    }
+
+    .btn-capacity-banner {
+      background: #475569;
+      box-shadow: 0 3px 8px rgba(71, 85, 105, 0.2);
     }
 
     .btn-save-week {
@@ -342,7 +347,6 @@
       margin-top: 4px;
     }
 
-    /* 3 Button Row for History Card */
     .history-btn-row {
       display: flex;
       gap: 8px;
@@ -452,7 +456,7 @@
         <div id="group-kiwi"></div>
       </div>
 
-      <!-- Nursery Card (5 Rooms + Subtotal) -->
+      <!-- Nursery Card (Rooms 110-113 + Subtotal) -->
       <div class="card">
         <div class="card-title">Nursery</div>
         <div id="group-nursery"></div>
@@ -475,6 +479,7 @@
 
       <!-- Bottom Grand Totals & Actions -->
       <div class="btn-banner" id="banner-total">Total Attendance: 0</div>
+      <div class="btn-banner btn-capacity-banner" id="banner-capacity">Capacity: 0%</div>
       <button class="btn-banner btn-save-week" onclick="openSaveModal()">💾 Save This Week</button>
     </div>
   </div>
@@ -494,9 +499,20 @@
   <div id="screen-settings" style="display: none;">
     <div class="header">
       <h1>Settings</h1>
-      <p>Configure export & email destinations</p>
+      <p>Configure preferences & export destinations</p>
     </div>
     <div class="container">
+      <!-- Capacity Setting Card -->
+      <div class="card">
+        <div class="card-title">Max Sanctuary Capacity:</div>
+        <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 12px;">
+          Baseline capacity used for sanctuary tracking.
+        </p>
+        <input type="number" id="setting-capacity" class="modal-input" min="1" value="619">
+        <button class="btn-banner" style="padding: 12px;" onclick="saveCapacitySetting()">Save Capacity</button>
+      </div>
+
+      <!-- Email Setting Card -->
       <div class="card">
         <div class="card-title">Recipient Email Addresses</div>
         <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 12px;">
@@ -577,6 +593,7 @@
       <div id="detail-body" style="margin: 14px 0;"></div>
 
       <div class="btn-banner" id="detail-total-banner" style="padding: 12px; font-size: 16px;">Total Attendance: 0</div>
+      <div class="btn-banner btn-capacity-banner" id="detail-capacity-banner" style="padding: 12px; font-size: 16px; margin-top: 8px;">Capacity: 0%</div>
       <button class="btn-export-email" onclick="exportWeekCSV(selectedRecordId)">✉ Export & Email CSV</button>
     </div>
   </div>
@@ -586,7 +603,7 @@
     const fieldsConfig = {
       sanctuary: ["Pew L", "Pew LC", "Pew RC", "Pew R", "Chair L", "Chair LC", "Chair RC", "Chair R", "Back & Other"],
       kiwi: ["KIWI"],
-      nursery: ["Desk/Hall", "Room 110", "Room 111", "Room 112", "Room 113"],
+      nursery: ["Room 110", "Room 111", "Room 112", "Room 113"],
       misc: ["Lecture", "Halls & Misc"],
       online: ["Facebook"]
     };
@@ -653,6 +670,12 @@
       // Grand Physical Total
       const grandTotal = totalSanctuary + totalKiwi + totalNursery + totalMisc;
       document.getElementById("banner-total").textContent = `Total Attendance: ${grandTotal}`;
+
+      // Capacity Percentage Calculation: (Sanctuary + KIWI) / Max Capacity
+      const maxCap = parseInt(localStorage.getItem("fwpc_capacity")) || 619;
+      const combinedSanctuaryKiwi = totalSanctuary + totalKiwi;
+      const pct = maxCap > 0 ? Math.round((combinedSanctuaryKiwi / maxCap) * 100) : 0;
+      document.getElementById("banner-capacity").textContent = `Capacity: ${pct}%`;
     }
 
     // Modal Operations
@@ -705,6 +728,9 @@
       const totalMisc = sum(fieldsConfig.misc);
       const totalOnline = sum(fieldsConfig.online);
       const grandTotal = totalSanctuary + totalKiwi + totalNursery + totalMisc;
+      
+      const maxCap = parseInt(localStorage.getItem("fwpc_capacity")) || 619;
+      const pct = maxCap > 0 ? Math.round(((totalSanctuary + totalKiwi) / maxCap) * 100) : 0;
 
       const newRecord = {
         id: "rec_" + Date.now(),
@@ -718,7 +744,8 @@
           nursery: totalNursery,
           misc: totalMisc,
           online: totalOnline,
-          grandTotal: grandTotal
+          grandTotal: grandTotal,
+          capacityPct: pct
         }
       };
 
@@ -728,10 +755,11 @@
       alert("Week saved successfully! Counters remain filled for adjustments.");
     }
 
-    // History Screen (with 3 buttons)
+    // History Screen (with Capacity line & 3 buttons)
     function renderHistory() {
       const container = document.getElementById("history-container");
       const records = getStoredRecords();
+      const currentMaxCap = parseInt(localStorage.getItem("fwpc_capacity")) || 619;
       container.innerHTML = "";
 
       if (records.length === 0) {
@@ -740,6 +768,13 @@
       }
 
       records.forEach(rec => {
+        // Fallback calculation for older records saved prior to capacity tracking
+        let capVal = rec.totals.capacityPct;
+        if (capVal === undefined) {
+          const combined = (rec.totals.sanctuary || 0) + (rec.totals.kiwi || 0);
+          capVal = currentMaxCap > 0 ? Math.round((combined / currentMaxCap) * 100) : 0;
+        }
+
         const card = document.createElement("div");
         card.className = "history-card";
         card.innerHTML = `
@@ -754,6 +789,7 @@
             <div>Misc: ${rec.totals.misc}</div>
             <div>Facebook: ${rec.totals.online}</div>
             <div class="history-total-line">Total: ${rec.totals.grandTotal}</div>
+            <div class="history-total-line">Capacity: ${capVal}%</div>
           </div>
           <div class="history-btn-row">
             <button class="btn-history-outline btn-history-export" onclick="exportWeekCSV('${rec.id}')">Export</button>
@@ -796,12 +832,19 @@
       }
     }
 
-    // Detail Breakdown View
+    // Detail Breakdown View (with matching Capacity banner)
     function openDetailView(id) {
       selectedRecordId = id;
       const records = getStoredRecords();
       const rec = records.find(r => r.id === id);
       if (!rec) return;
+
+      const currentMaxCap = parseInt(localStorage.getItem("fwpc_capacity")) || 619;
+      let capVal = rec.totals.capacityPct;
+      if (capVal === undefined) {
+        const combined = (rec.totals.sanctuary || 0) + (rec.totals.kiwi || 0);
+        capVal = currentMaxCap > 0 ? Math.round((combined / currentMaxCap) * 100) : 0;
+      }
 
       document.getElementById("detail-title").textContent = `Week of ${rec.title}`;
       const body = document.getElementById("detail-body");
@@ -830,22 +873,29 @@
 
       body.innerHTML = html;
       document.getElementById("detail-total-banner").textContent = `Total Attendance: ${rec.totals.grandTotal}`;
+      document.getElementById("detail-capacity-banner").textContent = `Capacity: ${capVal}%`;
       openModal("modal-detail");
     }
 
-    // CSV Generator & Email Intent (Works from History card or Detail modal)
+    // CSV Generator & Email Intent (Includes Capacity_Pct)
     function exportWeekCSV(recId) {
       const targetId = recId || selectedRecordId;
       const records = getStoredRecords();
       const rec = records.find(r => r.id === targetId);
       if (!rec) return;
 
-      const headers = ["Week", "Sanctuary", "KIWI", "Desk_Hall", "Room_110", "Room_111", "Room_112", "Room_113", "Total_Nursery", "Total_Misc", "Total_Attendance", "Online_Facebook"];
+      const currentMaxCap = parseInt(localStorage.getItem("fwpc_capacity")) || 619;
+      let capVal = rec.totals.capacityPct;
+      if (capVal === undefined) {
+        const combined = (rec.totals.sanctuary || 0) + (rec.totals.kiwi || 0);
+        capVal = currentMaxCap > 0 ? Math.round((combined / currentMaxCap) * 100) : 0;
+      }
+
+      const headers = ["Week", "Sanctuary", "KIWI", "Room_110", "Room_111", "Room_112", "Room_113", "Total_Nursery", "Total_Misc", "Total_Attendance", "Capacity_Pct", "Online_Facebook"];
       const row = [
         `"${rec.title}"`,
         rec.totals.sanctuary,
         rec.totals.kiwi,
-        rec.counts["Desk/Hall"] || 0,
         rec.counts["Room 110"] || 0,
         rec.counts["Room 111"] || 0,
         rec.counts["Room 112"] || 0,
@@ -853,6 +903,7 @@
         rec.totals.nursery,
         rec.totals.misc,
         rec.totals.grandTotal,
+        `"${capVal}%"`,
         rec.totals.online
       ];
 
@@ -863,7 +914,6 @@
         `Here is the weekly attendance breakdown for ${rec.title}:\n\n` +
         `Sanctuary: ${rec.totals.sanctuary}\n` +
         `KIWI: ${rec.totals.kiwi}\n` +
-        `Nursery (Desk/Hall): ${rec.counts["Desk/Hall"] || 0}\n` +
         `Nursery (Room 110): ${rec.counts["Room 110"] || 0}\n` +
         `Nursery (Room 111): ${rec.counts["Room 111"] || 0}\n` +
         `Nursery (Room 112): ${rec.counts["Room 112"] || 0}\n` +
@@ -871,6 +921,7 @@
         `Total Nursery: ${rec.totals.nursery}\n` +
         `Total Misc: ${rec.totals.misc}\n` +
         `Total Attendance: ${rec.totals.grandTotal}\n` +
+        `Capacity: ${capVal}%\n` +
         `Online (Facebook): ${rec.totals.online}\n\n` +
         `Raw CSV Data:\n${csvContent}`
       );
@@ -891,7 +942,14 @@
       }, 400);
     }
 
-    // Settings screen
+    // Settings logic
+    function saveCapacitySetting() {
+      const val = parseInt(document.getElementById("setting-capacity").value) || 619;
+      localStorage.setItem("fwpc_capacity", val);
+      alert("Sanctuary capacity saved!");
+      updateDisplay();
+    }
+
     function saveEmailSettings() {
       const input = document.getElementById("setting-emails").value.trim();
       localStorage.setItem("fwpc_emails", input);
@@ -907,8 +965,10 @@
       document.getElementById("nav-hist").classList.toggle("active", screen === "history");
       document.getElementById("nav-sett").classList.toggle("active", screen === "settings");
 
+      if (screen === "attendance") updateDisplay();
       if (screen === "history") renderHistory();
       if (screen === "settings") {
+        document.getElementById("setting-capacity").value = localStorage.getItem("fwpc_capacity") || "619";
         document.getElementById("setting-emails").value = localStorage.getItem("fwpc_emails") || "";
       }
       window.scrollTo(0, 0);
